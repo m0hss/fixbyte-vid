@@ -24,7 +24,7 @@ Scene cuts sit on bar downbeats: 0 · 4.24 · 8.24 · 16.24 · 22.24 · 26.24 ·
 |---|---|
 | 0.00–4.24 | Hook — scan line, `72:00:00`, “Your business. / Online. / In 72 hours.” |
 | 4.24–8.24 | Build — hero in a tilted browser, line geometry per beat, zoom-blur + white flash |
-| 8.24–16.24 | Drop — laptop/phone montage (whip-pans, diagonal wipes), marquee |
-| 16.24–22.24 | Services — tiles snap in every 2 beats with STRATEGY · DESIGN · DEVELOPMENT · AI · MOTION |
+| 8.24–16.24 | Drop — laptop/phone montage (whip-pans, diagonal wipes; phones use the mobile captures `cafe-phone.png` / `travel-phone.png`), marquee |
+| 16.24–22.24 | Services — five equal cards from `service-full-screenshot.png` (3 + 2, bottom row centred) snap in every 2 beats with STRATEGY · DESIGN · DEVELOPMENT · AI · MOTION |
 | 22.24–26.24 | Method — cards 01→04 on consecutive beats, captions, collapse to centre |
 | 26.24–30.00 | Tagline hits, FixByte → Studio lockup, light sweep, URL + “Free trial”, clean hold from 28.8 s |

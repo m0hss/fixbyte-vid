@@ -1,7 +1,7 @@
 """Derive crops and an upscaled logo from ../assets into ./build."""
 import os
 import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 A = os.path.join(ROOT, '..', 'assets')
@@ -42,11 +42,30 @@ mq = shot('templates marquee.png')
 for i, (x, y) in enumerate([(400, 48), (834, 48), (495, 482), (929, 482)]):
     save(mq.crop((x, y, x + 410, y + 410)), f'mq{i}.png')
 
-# --- Services tiles
-sv = shot('services.png')
-for i, box in enumerate([(211, 197, 683, 725), (707, 197, 1179, 725), (1203, 197, 1675, 725),
-                         (211, 749, 931, 932), (955, 749, 1675, 932)]):
-    save(sv.crop(box), f'svc{i}.png')
+# --- Services: five equal 378x422 cards with their 3D images (from the full screenshot)
+sv = shot('service-full-screenshot.png')
+CW, CH = 378, 422
+for i, x in enumerate([204, 600, 996]):                  # top row: straight crops
+    save(sv.crop((x, 30, x + CW, 30 + CH)), f'svc{i}.png')
+# bottom row cards are 576 wide: rebuild each at CW from its own pieces
+# (frame = left part + right edge of the card, title/text block scaled to fit, object re-centred)
+for i, (cx0, text, obj) in enumerate([(204, (224, 490, 600, 580), (382, 615, 602, 875)),
+                                      (799, (819, 490, 1207, 566), (976, 605, 1196, 865))]):
+    card = sv.crop((cx0, 471, cx0 + 576, 471 + CH))
+    out = Image.new('RGB', (CW, CH), (17, 17, 17))
+    out.paste(card.crop((0, 0, CW - 24, CH)), (0, 0))
+    out.paste(card.crop((576 - 24, 0, 576, CH)), (CW - 24, 0))
+    inner = Image.new('RGB', (CW - 40, CH - 40), (17, 17, 17))
+    out.paste(inner, (20, 20))                         # clear the cut-off text and object
+    tb = sv.crop(text)
+    k = min(1.0, (CW - 40) / tb.width)
+    out.paste(tb.resize((round(tb.width * k), round(tb.height * k)), Image.LANCZOS), (20, text[1] - 471))
+    ob = sv.crop(obj)
+    m = Image.new('L', ob.size, 0)
+    ImageDraw.Draw(m).ellipse((14, 14, ob.width - 14, ob.height - 14), fill=255)
+    m = m.filter(ImageFilter.GaussianBlur(12))
+    out.paste(ob, ((CW - ob.width) // 2, obj[1] - 471 - 4), m)
+    save(out, f'svc{3 + i}.png')
 
 # --- Method cards: flood-fill each card from a seed point, then fill its holes (text, icons) row by row
 mc = np.array(shot('method-cards.png')).astype(np.int32)
@@ -87,9 +106,33 @@ firsts = np.array([np.where(comps[3][r])[0][0] for r in rows])
 a, b = np.polyfit(rows, firsts, 1)
 yy, xx = np.mgrid[0:comps[2].shape[0], 0:comps[2].shape[1]]
 comps[2] &= xx < a * yy + b - 3
+cards = []
 for i, comp in enumerate(comps):
     alpha = Image.fromarray((comp * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(0.6))
     im = Image.fromarray(np.dstack([mc[Y0:Y1, X0:X1].astype(np.uint8), np.array(alpha)]), 'RGBA')
-    bb = im.getbbox()
-    print('card', i, 'offset', X0 + bb[0], Y0 + bb[1])
-    save(im.crop(bb), f'method{i}.png')
+    cards.append(im.crop(im.getbbox()))
+
+# card 03: card 04 covered its right edge; continue each row with the blank right edge of card 01
+# (same card style and size), seamed just inside 03's last opaque pixel
+c1 = np.array(cards[0]); c3 = np.array(cards[2])
+fa = c1.copy()
+for r in range(min(c1.shape[0], c3.shape[0])):
+    cols = np.where(c3[r, :, 3] > 200)[0]
+    if len(cols):
+        seam = cols[-1] - 3
+        fa[r, :seam] = c3[r, :seam]
+fa[:, :120, 3] = c3[:, :120, 3]                          # keep 03's own left corners (chamfer)
+cards[2] = Image.fromarray(fa, 'RGBA')
+
+# card 04: undo its tilt (angle of the fitted left edge), whichever sign straightens it
+def tilt(im):
+    al = np.array(im.split()[3]) > 128
+    rs = np.where(al.any(1))[0][25:-25]
+    return np.polyfit(rs, [np.where(al[r])[0][0] for r in rs], 1)[0]
+
+ang = np.degrees(np.arctan(a))
+best = min((cards[3].rotate(sg * ang, Image.BICUBIC, expand=True) for sg in (1, -1)), key=lambda im: abs(tilt(im)))
+cards[3] = best.crop(best.getbbox())
+print('card 04 tilt', round(ang, 2), 'deg -> residual slope', round(tilt(cards[3]), 4))
+for i, im in enumerate(cards):
+    save(im, f'method{i}.png')
