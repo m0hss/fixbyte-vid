@@ -13,6 +13,7 @@ python3 prep.py                 # crops + upscaled logo -> build/
 node render.mjs                 # 16:9
 node render.mjs --v             # 9:16
 node render.mjs --stills 8.3,28.9   # preview frames -> out/stills/
+node render.mjs --range 16.24,22.24 --mute   # one scene, silent -> out/preview-16x9.mp4
 ```
 Needs Node + Playwright (Chromium), ffmpeg, Python 3 with Pillow/numpy, fonts Inter Display + JetBrains Mono.
 
@@ -24,7 +25,7 @@ Scene cuts sit on bar downbeats: 0 · 4.24 · 8.24 · 16.24 · 22.24 · 26.24 ·
 |---|---|
 | 0.00–4.24 | Hook — scan line, `72:00:00`, “Your business. / Online. / In 72 hours.” |
 | 4.24–8.24 | Build — hero in a tilted browser, line geometry per beat, zoom-blur + white flash |
-| 8.24–16.24 | Drop — laptop/phone montage (whip-pans, diagonal wipes), marquee |
-| 16.24–22.24 | Services — tiles snap in every 2 beats with STRATEGY · DESIGN · DEVELOPMENT · AI · MOTION |
-| 22.24–26.24 | Method — cards 01→04 on consecutive beats, captions, collapse to centre |
+| 8.24–16.24 | Drop — laptop/phone montage (whip-pans, diagonal wipes; phones use the mobile captures `cafe-phone.png` / `travel-phone.png`), marquee |
+| 16.24–22.24 | Services — one service per screen every 2 beats: title, English description, its 3D object on a glow; progress bar + list STRATEGY · DESIGN · DEVELOPMENT · AI & AUTOMATION · MOTION |
+| 22.24–26.24 | Method — cards 01→04 (copy translated to English) on consecutive beats, captions, collapse to centre |
 | 26.24–30.00 | Tagline hits, FixByte → Studio lockup, light sweep, URL + “Free trial”, clean hold from 28.8 s |

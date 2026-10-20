@@ -2,6 +2,7 @@
 //   node render.mjs                 -> out/fixbyte-studio-promo-16x9.mp4
 //   node render.mjs --v             -> out/fixbyte-studio-promo-9x16.mp4
 //   node render.mjs --stills 1,8.5  -> out/stills/*.png (quick previews)
+//   node render.mjs --range 16.24,22.24 --mute  -> out/preview-16x9.mp4 (one scene, silent)
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -16,8 +17,12 @@ const here = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
 const vertical = args.includes('--v');
 const stillsArg = args.includes('--stills') ? args[args.indexOf('--stills') + 1] : null;
+const mute = args.includes('--mute');                       // no audio track
+const range = args.includes('--range') ? args[args.indexOf('--range') + 1].split(',').map(Number) : null;
 const W = vertical ? 1080 : 1920, H = vertical ? 1920 : 1080;
-const FPS = 30, DUR = 30, FRAMES = FPS * DUR;
+const FPS = 30, DUR = 30;
+const [T0, T1] = range || [0, DUR];
+const FRAMES = Math.round((T1 - T0) * FPS);
 const outDir = join(here, 'out');
 mkdirSync(outDir, { recursive: true });
 
@@ -46,20 +51,23 @@ if (stillsArg) {
 }
 
 const music = join(here, '..', 'assets', 'music', 'jonasblakewood-cyberpunk-cyberpunk-music-528055.mp3');
-const out = join(outDir, `fixbyte-studio-promo-${vertical ? '9x16' : '16x9'}.mp4`);
+const name = range || mute ? 'preview' : 'fixbyte-studio-promo';
+const out = join(outDir, `${name}-${vertical ? '9x16' : '16x9'}.mp4`);
+// low-opacity temporal film grain; music trimmed to 0:00–0:30 with a 1.5 s fade-out
+const grain = '[0:v]noise=c0s=5:c0f=t+u,format=yuv420p[v]';
+const audio = mute ? [] : ['-i', music];
+const filter = mute ? grain : `${grain};[1:a]atrim=${T0}:${T1},asetpts=PTS-STARTPTS,afade=t=out:st=${DUR - 1.5 - T0}:d=1.5[a]`;
 const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error',
   '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'png', '-i', '-',
-  '-i', music,
-  '-filter_complex',
-  // low-opacity temporal film grain; music trimmed to 0:00–0:30 with a 1.5 s fade-out
-  `[0:v]noise=c0s=5:c0f=t+u,format=yuv420p[v];[1:a]atrim=0:${DUR},asetpts=PTS-STARTPTS,afade=t=out:st=${DUR - 1.5}:d=1.5[a]`,
-  '-map', '[v]', '-map', '[a]',
+  ...audio,
+  '-filter_complex', filter,
+  '-map', '[v]', ...(mute ? [] : ['-map', '[a]']),
   '-c:v', 'libx264', '-preset', 'slow', '-crf', '19', '-maxrate', '14M', '-bufsize', '28M', '-tune', 'grain', '-profile:v', 'high', '-r', String(FPS),
-  '-c:a', 'aac', '-b:a', '256k', '-t', String(DUR), '-movflags', '+faststart', out], { stdio: ['pipe', 'inherit', 'inherit'] });
+  ...(mute ? [] : ['-c:a', 'aac', '-b:a', '256k']), '-t', String(T1 - T0), '-movflags', '+faststart', out], { stdio: ['pipe', 'inherit', 'inherit'] });
 
 const t0 = Date.now();
 for (let i = 0; i < FRAMES; i++) {
-  const buf = await frame(i / FPS);
+  const buf = await frame(T0 + i / FPS);
   if (!ff.stdin.write(buf)) await new Promise(r => ff.stdin.once('drain', r));
   if (i % 60 === 0) console.log(`frame ${i}/${FRAMES}  ${((Date.now() - t0) / 1000).toFixed(0)}s`);
 }
