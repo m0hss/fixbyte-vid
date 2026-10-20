@@ -27,8 +27,7 @@
     border-bottom: 1px solid rgba(94,234,212,.10); position: relative; }
   .dot { width: 12px; height: 12px; border-radius: 50%; background: #23302d; }
   .url { position: absolute; left: 50%; transform: translateX(-50%); font-family: var(--mono); font-size: 14px;
-    color: rgba(242,239,233,.62); background: rgba(255,255,255,.05); padding: 6px 22px; border-radius: 99px; letter-spacing: .04em; }
-  .url b { color: var(--mint); font-weight: 500; }
+    color: var(--mint); background: rgba(255,255,255,.05); padding: 6px 22px; border-radius: 99px; letter-spacing: .04em; }
   .screen { position: relative; overflow: hidden; background: #000; }
   .screen img { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
   .lid { position: absolute; left: 0; top: 0; background: #0b0f0e; border-radius: 24px 24px 8px 8px; padding: 16px 16px 22px;
@@ -89,7 +88,7 @@
         <div id="ghosts"></div>
         <div id="browser" class="abs browser">
           <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
-            <span class="url"><b>https://</b>studio.fixbyte.be</span></div>
+            <span class="url">studio.fixbyte.be</span></div>
           <div class="screen"><img src="build/hero.png"></div>
         </div>
       </div>
@@ -480,7 +479,7 @@ function s3(t) {
 // =====================================================================
 // 4 — SERVICES
 const SV = {
-  words: ['Strategy', 'Design', 'Development', 'AI', 'Motion'],
+  words: ['Strategy', 'Design', 'Development', 'AI & Automation', 'Motion'],
 };
 // five equal 378x422 cards: three on the top row, two centred under them
 {
@@ -503,10 +502,16 @@ SV.pos.forEach(([x, y, w, hh], i) => {
 const svcHead = $('svcHead');
 svcHead.innerHTML = `<div class="mono tag" style="margin-bottom:22px"><img src="../assets/favicon.png"><span>Services</span><span class="idx" id="svcIdx"></span></div>
   <div class="line head" id="svcWordBox" style="position:relative;font-size:${SV.fs}px"></div>`;
-const svcWords = SV.words.map(w => { const e = h('span', 'word', w.toUpperCase()); e.style.position = 'absolute'; e.style.left = 0; $('svcWordBox').appendChild(e); return e; });
+const svcWords = SV.words.map(w => { const e = h('span', 'word'); e.textContent = w.toUpperCase(); e.style.position = 'absolute'; e.style.left = 0; $('svcWordBox').appendChild(e); return e; });
 $('svcWordBox').style.width = (W - 2 * MX) + 'px';
+let svcFitted = false;
 function s4(t) {
   const on = t >= B(32) && t < B(44); show($('s4'), on); if (!on) return;
+  if (!svcFitted) {            // shrink any word wider than its line
+    svcFitted = true;
+    const box = $('svcWordBox').offsetWidth;
+    svcWords.forEach(e => { const w = e.offsetWidth; if (w > box) e.style.fontSize = (SV.fs * box / w).toFixed(1) + 'px'; });
+  }
   tf(svcHead, { x: SV.hx, y: SV.hy });
   const settle = eio(prog(t, B(32), 6));
   tf(svcGrid, { s: 1 + 0.015 * settle });
