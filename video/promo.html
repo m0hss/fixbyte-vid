@@ -109,6 +109,7 @@
       <div id="svcHead" class="abs"></div>
       <div id="svcGrid" class="abs"></div>
     </div>
+    <div id="s4b" class="full"></div>
 
     <!-- 5 method -->
     <div id="s5" class="full">
@@ -129,6 +130,7 @@
 
 <script>
 const V = new URLSearchParams(location.search).get('v') === '1';
+const SVC2 = new URLSearchParams(location.search).get('svc') === '2';   // services v2: one service per screen
 const W = V ? 1080 : 1920, H = V ? 1920 : 1080;
 const MX = Math.round(W * 0.08), MY = Math.round(H * 0.08);
 const FPS = 30;
@@ -536,6 +538,73 @@ function s4(t) {
 }
 
 // =====================================================================
+// 4b — SERVICES v2: one service per screen (title on top, 3D object on a glow, list + progress)
+const SB = V
+  ? { fs: 120, ty: MY + 130, ox: W / 2, oy: 1000, k: 1.55, bar: 300 }
+  : { fs: 140, ty: MY + 76, ox: W * 0.68, oy: H * 0.6, k: 1.45, bar: 360 };
+const s4bEl = $('s4b');
+show(SVC2 ? $('s4') : s4bEl, false);                // only one services variant is ever on screen
+s4bEl.innerHTML = `
+  <div id="sbGlow" class="abs"></div>
+  <div id="sbObjs"></div>
+  <div id="sbHead" class="abs mono tag"><img src="../assets/favicon.png"><span>Services</span><span class="idx" id="sbIdx"></span>
+    <span id="sbBar" style="position:relative;display:inline-block;width:${SB.bar}px;height:1px;margin-left:14px;background:rgba(94,234,212,.18)">
+      <span id="sbFill" style="position:absolute;left:0;top:-0.5px;height:2px;background:var(--mint);box-shadow:0 0 10px rgba(94,234,212,.8)"></span></span></div>
+  <div id="sbTitle" class="abs line head" style="font-size:${SB.fs}px;width:${W - 2 * MX}px"></div>
+  <div id="sbList" class="abs mono"></div>`;
+const sbGlow = $('sbGlow');
+Object.assign(sbGlow.style, { width: '1000px', height: '1000px', marginLeft: '-500px', marginTop: '-500px',
+  background: 'radial-gradient(circle, rgba(94,234,212,.30), rgba(20,184,166,.16) 30%, rgba(14,59,54,.10) 50%, rgba(7,17,15,0) 70%)' });
+const sbWords = SV.words.map(w => { const e = h('span', 'word'); e.textContent = w.toUpperCase(); e.style.position = 'absolute'; e.style.left = 0; $('sbTitle').appendChild(e); return e; });
+const sbObjs = SV.words.map((w, i) => { const e = h('img', 'abs'); e.src = `build/obj${i}.png`; $('sbObjs').appendChild(e); mbFilter('mbo' + i); return e; });
+const sbItems = SV.words.map((w, i) => { const e = h('div', '', `<span style="opacity:.6">0${i + 1}</span>&nbsp;&nbsp;${w.toUpperCase().replace('&', '&amp;')}`); $('sbList').appendChild(e); return e; });
+Object.assign($('sbList').style, V
+  ? { display: 'flex', flexDirection: 'column', gap: '22px', fontSize: '26px' }
+  : { display: 'flex', gap: '40px', fontSize: '20px', whiteSpace: 'nowrap' });
+let sbFitted = false;
+function s4b(t) {
+  const on = t >= B(32) && t < B(44); show(s4bEl, on); if (!on) return;
+  if (!sbFitted) {
+    sbFitted = true;
+    sbWords.forEach(e => { const w = e.offsetWidth, box = W - 2 * MX; if (w > box) e.style.fontSize = (SB.fs * box / w).toFixed(1) + 'px'; });
+    sbObjs.forEach(e => { e.style.width = (e.naturalWidth * SB.k) + 'px'; e.dataset.w = e.naturalWidth * SB.k; e.dataset.h = e.naturalHeight * SB.k; });
+  }
+  tf($('sbHead'), { x: MX, y: MY + 18 });
+  tf($('sbTitle'), { x: MX, y: SB.ty });
+  tf($('sbList'), V ? { x: MX, y: 1440 } : { x: MX, y: H - MY - 28 });
+  let cur = 0; for (let i = 0; i < 5; i++) if (t >= B(32 + 2 * i)) cur = i;
+  $('sbIdx').textContent = `0${cur + 1}/05`;
+  let frac = 0; for (let i = 0; i < 5; i++) frac += eo(prog(t, B(32 + 2 * i), 0.5)) / 5;
+  $('sbFill').style.width = (SB.bar * frac).toFixed(1) + 'px';
+  // glow pulses on every entry
+  const pulse = Math.max(0, 1 - (t - B(32 + 2 * cur)) / 0.6);
+  tf(sbGlow, { x: SB.ox, y: SB.oy, s: 0.9 + 0.12 * pulse, o: (0.75 + 0.35 * pulse) * eo(prog(t, B(32), 0.4)) });
+  SV.words.forEach((w, i) => {
+    const tb = B(32 + 2 * i), te = i < 4 ? B(34 + 2 * i) : 99;
+    // title: slides up in its line, leaves upward just before the next beat
+    const pin = eo(prog(t, tb, 0.5)), pout = qi(prog(t, te - 0.16, 0.16));
+    sbWords[i].style.transform = `translateY(${((1 - pin) * 108 - pout * 108).toFixed(2)}%)`;
+    sbWords[i].style.opacity = t >= tb && pout < 1 ? 1 : 0;
+    // object: whips in from the right, floats, whips out to the left
+    const el = sbObjs[i], visible = t >= tb - 0.01 && t < te;
+    el.style.display = visible ? '' : 'none';
+    if (visible) {
+      const xf = tt => (1 - eo(prog(tt, tb, 0.55))) * 260 - qi(prog(tt, te - 0.18, 0.18)) * 320;
+      const ow = +el.dataset.w, oh = +el.dataset.h, u = t - tb;
+      const sc = lerp(0.92, 1, eo(prog(t, tb, 0.55))) * (i === 4 ? 1 + 0.05 * eio(prog(t, tb + 0.4, 1.6)) : 1);
+      const op = prog(t, tb, 0.1) * (1 - qi(prog(t, te - 0.18, 0.18)));
+      tf(el, { x: SB.ox - ow / 2 + xf(t), y: SB.oy - oh / 2 + Math.sin(u * 2.4) * 8, r: (Math.sin(u * 1.7) * 3).toFixed(2), s: sc, o: op });
+      mb(el, 'mbo' + i, vel(xf, t), 0, 'drop-shadow(0 30px 40px rgba(0,0,0,.55))');
+    }
+    // list: active item lights up in mint
+    const a = eo(prog(t, tb, 0.3)) * (i < 4 ? 1 - eo(prog(t, te, 0.3)) : 1);
+    sbItems[i].style.color = a > 0.5 ? 'var(--mint)' : 'var(--ink)';
+    sbItems[i].style.opacity = (0.35 + 0.65 * a).toFixed(3);
+  });
+  $('sbList').style.opacity = eo(prog(t, B(32), 0.5));
+}
+
+// =====================================================================
 // 5 — METHOD
 const MC = {
   caps: ['Look first.', 'Choose one.', 'Send the essentials.', 'Live by morning.'],
@@ -707,7 +776,7 @@ function ambient(t) {
 }
 
 window.render = function (t) {
-  ambient(t); s1(t); s2(t); s3(t); s4(t); s5(t); s6(t);
+  ambient(t); s1(t); s2(t); s3(t); if (SVC2) s4b(t); else s4(t); s5(t); s6(t);
 };
 window.ready = Promise.all([document.fonts.ready, ...[...document.images].map(i => i.decode().catch(() => console.error('img', i.src)))]);
 window.W = W; window.H = H;

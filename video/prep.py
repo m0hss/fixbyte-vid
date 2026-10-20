@@ -67,6 +67,24 @@ for i, (cx0, text, obj) in enumerate([(204, (224, 490, 600, 580), (382, 615, 602
     out.paste(ob, ((CW - ob.width) // 2, obj[1] - 471 - 4), m)
     save(out, f'svc{3 + i}.png')
 
+# --- Services v2: the five 3D objects cut out of their cards (alpha from distance to the card grey)
+sva = np.array(sv).astype(np.int32)
+for i, (x0, y0, x1, y1) in enumerate([(214, 160, 572, 445), (610, 160, 968, 445), (1006, 150, 1364, 445),
+                                      (214, 600, 770, 885), (809, 600, 1365, 885)]):
+    reg = sva[y0:y1, x0:x1]
+    diff = np.abs(reg - 17).max(2)
+    ys, xs = np.where(diff > 22)
+    m = 24
+    bx0, by0 = max(0, xs.min() - m), max(0, ys.min() - m)
+    bx1, by1 = min(reg.shape[1], xs.max() + m), min(reg.shape[0], ys.max() + m)
+    crop = reg[by0:by1, bx0:bx1]
+    al = np.clip((np.abs(crop - 17).max(2) - 8) / 18, 0, 1)
+    ell = Image.new('L', (crop.shape[1], crop.shape[0]), 0)
+    ImageDraw.Draw(ell).ellipse((4, 4, crop.shape[1] - 4, crop.shape[0] - 4), fill=255)
+    ell = np.array(ell.filter(ImageFilter.GaussianBlur(10))) / 255
+    al = np.array(Image.fromarray((al * ell * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.7)))
+    save(Image.fromarray(np.dstack([crop.astype(np.uint8), al]), 'RGBA'), f'obj{i}.png')
+
 # --- Method cards: flood-fill each card from a seed point, then fill its holes (text, icons) row by row
 mc = np.array(shot('method-cards.png')).astype(np.int32)
 lum = mc.mean(2)
