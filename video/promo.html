@@ -49,11 +49,12 @@
 
   .tile { position: absolute; border-radius: 22px; overflow: hidden; }
   .tile img { display: block; width: 100%; height: 100%; }
-  .slot { position: absolute; border-radius: 22px; border: 1px dashed rgba(94,234,212,.16); }
-  .rim { position: absolute; inset: 0; border-radius: 22px; box-shadow: 0 0 0 1.5px var(--mint) inset, 0 0 40px rgba(94,234,212,.45) inset; }
 
   .card { position: absolute; transform-origin: 50% 50%; }
   .card img { display: block; width: 100%; height: 100%; }
+  .mtext { position: absolute; white-space: normal; }
+  .mtext .mh { font-family: var(--head); font-weight: 600; letter-spacing: -0.01em; line-height: 1.3; }
+  .mtext .mb { font-family: 'Inter', sans-serif; font-weight: 400; line-height: 1.6; }
   .cap { position: absolute; white-space: nowrap; }
   .cap .n { font-family: var(--mono); font-size: 18px; letter-spacing: .18em; color: var(--mint); margin-bottom: 10px; }
   .cap .t { font-family: var(--head); font-weight: 700; letter-spacing: -0.03em; color: var(--ink); }
@@ -105,10 +106,6 @@
     </div>
 
     <!-- 4 services -->
-    <div id="s4" class="full">
-      <div id="svcHead" class="abs"></div>
-      <div id="svcGrid" class="abs"></div>
-    </div>
     <div id="s4b" class="full"></div>
 
     <!-- 5 method -->
@@ -130,7 +127,6 @@
 
 <script>
 const V = new URLSearchParams(location.search).get('v') === '1';
-const SVC2 = new URLSearchParams(location.search).get('svc') === '2';   // services v2: one service per screen
 const W = V ? 1080 : 1920, H = V ? 1920 : 1080;
 const MX = Math.round(W * 0.08), MY = Math.round(H * 0.08);
 const FPS = 30;
@@ -482,68 +478,20 @@ function s3(t) {
 // 4 — SERVICES
 const SV = {
   words: ['Strategy', 'Design', 'Development', 'AI & Automation', 'Motion'],
+  // the site's card copy (service-full-screenshot.png), translated from French
+  desc: [
+    'What a site has to do before it looks good: get found. The words your customers type, pages that answer them, a clear action at the end.',
+    'The design becomes yours: your sign, your colours, your sections. Not a logo pasted onto a theme.',
+    'From mock-up to a domain that runs: code, going live, hosting, backups.',
+    'We plug in AI where it saves time: content, translations, replies, repetitive tasks. Never in place of your voice.',
+    'Restrained animations that guide the eye to the button, not fireworks that slow the page down.',
+  ],
 };
-// five equal 378x422 cards: three on the top row, two centred under them
-{
-  const s = V ? 0.762 : 0.78, gp = 22, cw = 378 * s, ch = 422 * s;
-  const gx = (W - 3 * cw - 2 * gp) / 2, gy = V ? 820 : 300;
-  SV.pos = [0, 1, 2].map(c => [gx + c * (cw + gp), gy, cw, ch])
-    .concat([0.5, 1.5].map(c => [gx + c * (cw + gp), gy + ch + gp, cw, ch]));
-  SV.hx = gx; SV.hy = V ? 560 : MY + 18; SV.fs = V ? 120 : 112;
-}
-const svcGrid = $('svcGrid'); const svcTiles = [];
-SV.pos.forEach(([x, y, w, hh], i) => {
-  const slot = h('div', 'slot'); Object.assign(slot.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: hh + 'px', borderRadius: '10px' });
-  svcGrid.appendChild(slot);
-  const tile = h('div', 'tile', `<img src="build/svc${i}.png"><div class="rim"></div>`);
-  tile.querySelector('.rim').style.borderRadius = '10px';
-  Object.assign(tile.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: hh + 'px', borderRadius: '10px',
-    boxShadow: '0 30px 80px rgba(0,0,0,.55), 0 0 0 1px rgba(94,234,212,.10)' });
-  svcGrid.appendChild(tile); svcTiles.push(tile);
-});
-const svcHead = $('svcHead');
-svcHead.innerHTML = `<div class="mono tag" style="margin-bottom:22px"><img src="../assets/favicon.png"><span>Services</span><span class="idx" id="svcIdx"></span></div>
-  <div class="line head" id="svcWordBox" style="position:relative;font-size:${SV.fs}px"></div>`;
-const svcWords = SV.words.map(w => { const e = h('span', 'word'); e.textContent = w.toUpperCase(); e.style.position = 'absolute'; e.style.left = 0; $('svcWordBox').appendChild(e); return e; });
-$('svcWordBox').style.width = (W - 2 * MX) + 'px';
-let svcFitted = false;
-function s4(t) {
-  const on = t >= B(32) && t < B(44); show($('s4'), on); if (!on) return;
-  if (!svcFitted) {            // shrink any word wider than its line
-    svcFitted = true;
-    const box = $('svcWordBox').offsetWidth;
-    svcWords.forEach(e => { const w = e.offsetWidth; if (w > box) e.style.fontSize = (SV.fs * box / w).toFixed(1) + 'px'; });
-  }
-  tf(svcHead, { x: SV.hx, y: SV.hy });
-  const settle = eio(prog(t, B(32), 6));
-  tf(svcGrid, { s: 1 + 0.015 * settle });
-  svcGrid.style.transformOrigin = `${W / 2}px ${H / 2}px`;
-  svcTiles.forEach((tile, i) => {
-    const tb = B(32 + 2 * i), p = eo(prog(t, tb, 0.45));
-    const dir = [[-1, 0], [0, 1], [1, 0], [-1, 1], [1, 1]][i];
-    tile.style.opacity = prog(t, tb, 0.06);
-    tile.style.transform = `translate(${dir[0] * (1 - p) * 60}px,${dir[1] * (1 - p) * 60}px) scale(${lerp(0.94, 1, p)})`;
-    tile.querySelector('.rim').style.opacity = (0.15 + 0.85 * Math.max(0, 1 - (t - tb) / 0.9)) * (t >= tb ? 1 : 0);
-  });
-  [...svcGrid.querySelectorAll('.slot')].forEach(sl => { sl.style.opacity = prog(t, B(32), 0.2); });
-  let cur = 0; for (let i = 0; i < 5; i++) if (t >= B(32 + 2 * i)) cur = i;
-  $('svcIdx').textContent = `0${cur + 1}/05`;
-  svcWords.forEach((el, i) => {
-    const tb = B(32 + 2 * i), te = i < 4 ? B(34 + 2 * i) : 99;
-    const pin = eo(prog(t, tb, 0.5)), pout = qi(prog(t, te - 0.16, 0.16));
-    el.style.transform = `translateY(${((1 - pin) * 108 - pout * 108).toFixed(2)}%)`;
-    el.style.opacity = t >= tb && pout < 1 ? 1 : 0;
-    el.style.color = 'var(--ink)';
-  });
-}
-
-// =====================================================================
-// 4b — SERVICES v2: one service per screen (title on top, 3D object on a glow, list + progress)
+// one service per screen: title on top, English description, 3D object on a glow, list + progress
 const SB = V
-  ? { fs: 120, ty: MY + 130, ox: W / 2, oy: 1000, k: 1.55, bar: 300 }
-  : { fs: 140, ty: MY + 76, ox: W * 0.68, oy: H * 0.6, k: 1.45, bar: 360 };
+  ? { fs: 120, ty: MY + 130, ox: W / 2, oy: 1000, k: 1.55, bar: 300, dy: MY + 312, dw: W - 2 * MX, dfs: 34 }
+  : { fs: 140, ty: MY + 76, ox: W * 0.68, oy: H * 0.6, k: 1.45, bar: 360, dy: MY + 290, dw: 640, dfs: 32 };
 const s4bEl = $('s4b');
-show(SVC2 ? $('s4') : s4bEl, false);                // only one services variant is ever on screen
 s4bEl.innerHTML = `
   <div id="sbGlow" class="abs"></div>
   <div id="sbObjs"></div>
@@ -551,18 +499,25 @@ s4bEl.innerHTML = `
     <span id="sbBar" style="position:relative;display:inline-block;width:${SB.bar}px;height:1px;margin-left:14px;background:rgba(94,234,212,.18)">
       <span id="sbFill" style="position:absolute;left:0;top:-0.5px;height:2px;background:var(--mint);box-shadow:0 0 10px rgba(94,234,212,.8)"></span></span></div>
   <div id="sbTitle" class="abs line head" style="font-size:${SB.fs}px;width:${W - 2 * MX}px"></div>
+  <div id="sbDesc" class="abs"></div>
   <div id="sbList" class="abs mono"></div>`;
 const sbGlow = $('sbGlow');
 Object.assign(sbGlow.style, { width: '1000px', height: '1000px', marginLeft: '-500px', marginTop: '-500px',
   background: 'radial-gradient(circle, rgba(94,234,212,.30), rgba(20,184,166,.16) 30%, rgba(14,59,54,.10) 50%, rgba(7,17,15,0) 70%)' });
 const sbWords = SV.words.map(w => { const e = h('span', 'word'); e.textContent = w.toUpperCase(); e.style.position = 'absolute'; e.style.left = 0; $('sbTitle').appendChild(e); return e; });
+const sbDesc = SV.desc.map(d => {
+  const e = h('div'); e.textContent = d;
+  Object.assign(e.style, { position: 'absolute', left: 0, top: 0, width: SB.dw + 'px', fontFamily: "'Inter', sans-serif",
+    fontSize: SB.dfs + 'px', lineHeight: 1.45, letterSpacing: '-0.005em', color: 'rgba(242,239,233,.8)' });
+  $('sbDesc').appendChild(e); return e;
+});
 const sbObjs = SV.words.map((w, i) => { const e = h('img', 'abs'); e.src = `build/obj${i}.png`; $('sbObjs').appendChild(e); mbFilter('mbo' + i); return e; });
 const sbItems = SV.words.map((w, i) => { const e = h('div', '', `<span style="opacity:.6">0${i + 1}</span>&nbsp;&nbsp;${w.toUpperCase().replace('&', '&amp;')}`); $('sbList').appendChild(e); return e; });
 Object.assign($('sbList').style, V
   ? { display: 'flex', flexDirection: 'column', gap: '22px', fontSize: '26px' }
   : { display: 'flex', gap: '40px', fontSize: '20px', whiteSpace: 'nowrap' });
 let sbFitted = false;
-function s4b(t) {
+function s4(t) {
   const on = t >= B(32) && t < B(44); show(s4bEl, on); if (!on) return;
   if (!sbFitted) {
     sbFitted = true;
@@ -571,6 +526,7 @@ function s4b(t) {
   }
   tf($('sbHead'), { x: MX, y: MY + 18 });
   tf($('sbTitle'), { x: MX, y: SB.ty });
+  tf($('sbDesc'), { x: MX, y: SB.dy });
   tf($('sbList'), V ? { x: MX, y: 1440 } : { x: MX, y: H - MY - 28 });
   let cur = 0; for (let i = 0; i < 5; i++) if (t >= B(32 + 2 * i)) cur = i;
   $('sbIdx').textContent = `0${cur + 1}/05`;
@@ -585,6 +541,10 @@ function s4b(t) {
     const pin = eo(prog(t, tb, 0.5)), pout = qi(prog(t, te - 0.16, 0.16));
     sbWords[i].style.transform = `translateY(${((1 - pin) * 108 - pout * 108).toFixed(2)}%)`;
     sbWords[i].style.opacity = t >= tb && pout < 1 ? 1 : 0;
+    // description follows the title in, leaves with it
+    const din = eo(prog(t, tb + 0.06, 0.45));
+    sbDesc[i].style.opacity = (prog(t, tb + 0.06, 0.2) * (1 - pout)).toFixed(3);
+    sbDesc[i].style.transform = `translateY(${((1 - din) * 24 - pout * 14).toFixed(2)}px)`;
     // object: whips in from the right, floats, whips out to the left
     const el = sbObjs[i], visible = t >= tb - 0.01 && t < te;
     el.style.display = visible ? '' : 'none';
@@ -608,6 +568,12 @@ function s4b(t) {
 // 5 — METHOD
 const MC = {
   caps: ['Look first.', 'Choose one.', 'Send the essentials.', 'Live by morning.'],
+  // card copy from method-cards.png, translated from French
+  head: ['01 — Look first', '02 — Choose — or ask for your own', '03 — Send the essentials', '04 — We hold the door'],
+  body: ['Browse our work and designs. You judge on screen, not on a quote.',
+    'Like a design? We start from there. Nothing fits? We create one made to measure.',
+    'We build the preview with your branding: a link to share, 72 h to decide.',
+    "You ask in the evening. It's live by morning. No back-and-forth."],
   size: [[270, 287], [270, 308], [270, 287], [269, 285]],   // build/method*.png
 };
 // equal columns, tops aligned; captions share one row under the tallest card
@@ -625,6 +591,13 @@ if (!V) {
 const mGroup = $('mGroup'); const mCards = [], mCaps = [];
 MC.pos.forEach(([x, y, w, hh], i) => {
   const c = h('div', 'card', `<img src="build/method${i}.png">`);
+  const mt = h('div', 'mtext', `<div class="mh"></div><div class="mb"></div>`);
+  mt.querySelector('.mh').textContent = MC.head[i]; mt.querySelector('.mb').textContent = MC.body[i];
+  const k = MC.s, ink = i % 2 ? ['#F7F7F5', 'rgba(247,247,245,.82)'] : ['#111', '#444'];
+  Object.assign(mt.style, { left: 16 * k + 'px', top: 157 * k + 'px', width: (MC.size[i][0] - 34) * k + 'px' });
+  Object.assign(mt.querySelector('.mh').style, { fontSize: 18.5 * k + 'px', color: ink[0] });
+  Object.assign(mt.querySelector('.mb').style, { fontSize: 15 * k + 'px', color: ink[1], marginTop: 12 * k + 'px' });
+  c.appendChild(mt);
   Object.assign(c.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: hh + 'px',
     filter: i % 2 ? 'drop-shadow(0 0 1.5px rgba(94,234,212,.55)) drop-shadow(0 30px 50px rgba(0,0,0,.6))' : 'drop-shadow(0 30px 50px rgba(0,0,0,.55))',
     zIndex: i });
@@ -776,7 +749,7 @@ function ambient(t) {
 }
 
 window.render = function (t) {
-  ambient(t); s1(t); s2(t); s3(t); if (SVC2) s4b(t); else s4(t); s5(t); s6(t);
+  ambient(t); s1(t); s2(t); s3(t); s4(t); s5(t); s6(t);
 };
 window.ready = Promise.all([document.fonts.ready, ...[...document.images].map(i => i.decode().catch(() => console.error('img', i.src)))]);
 window.W = W; window.H = H;

@@ -42,32 +42,9 @@ mq = shot('templates marquee.png')
 for i, (x, y) in enumerate([(400, 48), (834, 48), (495, 482), (929, 482)]):
     save(mq.crop((x, y, x + 410, y + 410)), f'mq{i}.png')
 
-# --- Services: five equal 378x422 cards with their 3D images (from the full screenshot)
 sv = shot('service-full-screenshot.png')
-CW, CH = 378, 422
-for i, x in enumerate([204, 600, 996]):                  # top row: straight crops
-    save(sv.crop((x, 30, x + CW, 30 + CH)), f'svc{i}.png')
-# bottom row cards are 576 wide: rebuild each at CW from its own pieces
-# (frame = left part + right edge of the card, title/text block scaled to fit, object re-centred)
-for i, (cx0, text, obj) in enumerate([(204, (224, 490, 600, 580), (382, 615, 602, 875)),
-                                      (799, (819, 490, 1207, 566), (976, 605, 1196, 865))]):
-    card = sv.crop((cx0, 471, cx0 + 576, 471 + CH))
-    out = Image.new('RGB', (CW, CH), (17, 17, 17))
-    out.paste(card.crop((0, 0, CW - 24, CH)), (0, 0))
-    out.paste(card.crop((576 - 24, 0, 576, CH)), (CW - 24, 0))
-    inner = Image.new('RGB', (CW - 40, CH - 40), (17, 17, 17))
-    out.paste(inner, (20, 20))                         # clear the cut-off text and object
-    tb = sv.crop(text)
-    k = min(1.0, (CW - 40) / tb.width)
-    out.paste(tb.resize((round(tb.width * k), round(tb.height * k)), Image.LANCZOS), (20, text[1] - 471))
-    ob = sv.crop(obj)
-    m = Image.new('L', ob.size, 0)
-    ImageDraw.Draw(m).ellipse((14, 14, ob.width - 14, ob.height - 14), fill=255)
-    m = m.filter(ImageFilter.GaussianBlur(12))
-    out.paste(ob, ((CW - ob.width) // 2, obj[1] - 471 - 4), m)
-    save(out, f'svc{3 + i}.png')
 
-# --- Services v2: the five 3D objects cut out of their cards (alpha from distance to the card grey)
+# --- Services: the five 3D objects cut out of their cards (alpha from distance to the card grey)
 sva = np.array(sv).astype(np.int32)
 for i, (x0, y0, x1, y1) in enumerate([(214, 160, 572, 445), (610, 160, 968, 445), (1006, 150, 1364, 445),
                                       (214, 600, 770, 885), (809, 600, 1365, 885)]):
@@ -152,5 +129,11 @@ ang = np.degrees(np.arctan(a))
 best = min((cards[3].rotate(sg * ang, Image.BICUBIC, expand=True) for sg in (1, -1)), key=lambda im: abs(tilt(im)))
 cards[3] = best.crop(best.getbbox())
 print('card 04 tilt', round(ang, 2), 'deg -> residual slope', round(tilt(cards[3]), 4))
+# French copy is replaced by English text in promo.html: clear the text area to the flat card colour
 for i, im in enumerate(cards):
-    save(im, f'method{i}.png')
+    arr = np.array(im)
+    bg = 255 if i % 2 == 0 else 0
+    region = arr[150:arr.shape[0] - 14, 12:arr.shape[1] - 14]
+    solid = region[:, :, 3] == 255
+    region[solid, :3] = bg
+    save(Image.fromarray(arr, 'RGBA'), f'method{i}.png')

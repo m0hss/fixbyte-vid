@@ -2,7 +2,7 @@
 //   node render.mjs                 -> out/fixbyte-studio-promo-16x9.mp4
 //   node render.mjs --v             -> out/fixbyte-studio-promo-9x16.mp4
 //   node render.mjs --stills 1,8.5  -> out/stills/*.png (quick previews)
-//   node render.mjs --svc2 --range 16.24,22.24 --mute  -> out/preview-services-v2-16x9.mp4
+//   node render.mjs --range 16.24,22.24 --mute  -> out/preview-16x9.mp4 (one scene, silent)
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -17,7 +17,6 @@ const here = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
 const vertical = args.includes('--v');
 const stillsArg = args.includes('--stills') ? args[args.indexOf('--stills') + 1] : null;
-const svc2 = args.includes('--svc2');                       // services v2 (one service per screen)
 const mute = args.includes('--mute');                       // no audio track
 const range = args.includes('--range') ? args[args.indexOf('--range') + 1].split(',').map(Number) : null;
 const W = vertical ? 1080 : 1920, H = vertical ? 1920 : 1080;
@@ -34,8 +33,7 @@ const browser = await chromium.launch({
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
 page.on('console', m => console.log('[page]', m.text()));
 page.on('pageerror', e => { console.error('[pageerror]', e); process.exit(1); });
-const query = [vertical && 'v=1', svc2 && 'svc=2'].filter(Boolean).join('&');
-await page.goto(pathToFileURL(join(here, 'promo.html')).href + (query ? '?' + query : ''));
+await page.goto(pathToFileURL(join(here, 'promo.html')).href + (vertical ? '?v=1' : ''));
 await page.evaluate(() => window.ready);
 
 const frame = async t => {
@@ -53,7 +51,7 @@ if (stillsArg) {
 }
 
 const music = join(here, '..', 'assets', 'music', 'jonasblakewood-cyberpunk-cyberpunk-music-528055.mp3');
-const name = range || svc2 || mute ? `preview${svc2 ? '-services-v2' : ''}` : 'fixbyte-studio-promo';
+const name = range || mute ? 'preview' : 'fixbyte-studio-promo';
 const out = join(outDir, `${name}-${vertical ? '9x16' : '16x9'}.mp4`);
 // low-opacity temporal film grain; music trimmed to 0:00–0:30 with a 1.5 s fade-out
 const grain = '[0:v]noise=c0s=5:c0f=t+u,format=yuv420p[v]';
