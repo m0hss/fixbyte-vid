@@ -240,7 +240,7 @@ function s1(t) {
 // =====================================================================
 // 2 — BUILD
 const S2 = { fw: V ? 900 : 1160 };
-S2.fh = 44 + Math.round(S2.fw * 944 / 1514);
+S2.fh = 44 + Math.round(S2.fw * 938 / 1500);   // build/hero.png
 S2.cx = W / 2; S2.cy = V ? H * 0.5 : H / 2 + 10;
 const browser = $('browser');
 browser.style.width = S2.fw + 'px'; browser.style.height = S2.fh + 'px';
@@ -351,13 +351,18 @@ SH.forEach((s, i) => {
 });
 // marquee rows (seamless: identical card pitch)
 const MQ = V ? { cs: 400, rows: [H / 2 - 450, H / 2, H / 2 + 450], gap: 24 } : { cs: 350, rows: [H / 2 - 172, H / 2 + 200], gap: 22 };
-MQ.pitch = MQ.cs + MQ.gap; MQ.n = Math.ceil((W + 2 * MQ.pitch) / MQ.pitch) + 4;
+// build/mq0..11.png (prep.py MQ_TILES). Each row loops its own tiles, so rows passing each other
+// never show the same template twice; neighbours (incl. the loop seam) differ in category
+MQ.order = V ? [[0, 1, 2, 3], [4, 5, 6, 7], [9, 8, 10, 11]] : [[0, 1, 2, 3, 4, 5], [6, 7, 8, 9, 10, 11]];
+MQ.pitch = MQ.cs + MQ.gap;
+MQ.period = MQ.order.map(o => o.length * MQ.pitch);
+MQ.n = Math.ceil((W + Math.max(...MQ.period)) / MQ.pitch) + 2;
 const mqRows = MQ.rows.map((cy, r) => {
   const row = h('div', 'abs'); row.style.top = (cy - MQ.cs / 2) + 'px';
   for (let k = 0; k < MQ.n; k++) {
     const c = h('div', 'tile'); c.style.width = c.style.height = MQ.cs + 'px'; c.style.left = (k * MQ.pitch) + 'px';
     c.style.borderRadius = '18px';
-    c.innerHTML = `<img src="build/mq${(k + r * 2) % 4}.png">`;
+    c.innerHTML = `<img src="build/mq${MQ.order[r][k % MQ.order[r].length]}.png">`;
     row.appendChild(c);
   }
   $('mq').appendChild(row); mbFilter('mbq' + r); return row;
@@ -434,8 +439,8 @@ function s3(t) {
     const pos = tt => { const u = tt - MQ0; return 420 * u + 3200 * (1 - Math.exp(-u * 3.2)) / 3.2; };
     mqRows.forEach((row, r) => {
       const dir = r % 2 ? 1 : -1;
-      const off = ((pos(t) + r * 173) % (MQ.pitch * 4));
-      const x = dir < 0 ? -off - MQ.pitch : off - MQ.pitch * 5;
+      const off = ((pos(t) + r * 173) % MQ.period[r]);
+      const x = dir < 0 ? -off - MQ.pitch : off - MQ.period[r] - MQ.pitch;
       row.style.transformOrigin = `${(W / 2 - x).toFixed(1)}px ${MQ.cs / 2}px`;
       row.style.transform = `translate3d(${x.toFixed(2)}px,0,0) rotate(-2.5deg)`;
       mb(row, 'mbq' + r, vel(pos, t), 0);

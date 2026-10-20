@@ -35,12 +35,24 @@ stu = Image.open(os.path.join(A, 'logo-studio.png')).convert('RGBA').crop((24, 4
 save(stu, 'logo-studio.png')
 
 # --- Hero: trim the page's black side margins so the browser frame shows the hero card
-save(shot('hero.png').crop((190, 0, 1704, 944)), 'hero.png')
+save(shot('hero-en.png').crop((88, 0, 1588, 938)), 'hero.png')      # English hero; card spans x 106–1569
 
-# --- Marquee cards (410x410 each, uniform pitch)
-mq = shot('templates marquee.png')
-for i, (x, y) in enumerate([(400, 48), (834, 48), (495, 482), (929, 482)]):
-    save(mq.crop((x, y, x + 410, y + 410)), f'mq{i}.png')
+# --- Marquee cards (410x410 each, uniform pitch): restaurants, cafés, agencies and real estate,
+# interleaved so neighbours differ. Edge cards the screenshots fade out are not used.
+MQ_TILES = [('templates marquee.png', 399, 48),    # Foodee
+            ('cafe-marquee.png', 274, 22),         # Bakeri
+            ('agencies-marquee.png', 869, 458),    # X-Axis
+            ('agencies-marquee.png', 435, 458),    # Realmob
+            ('templates marquee.png', 833, 48),    # Umami
+            ('cafe-marquee.png', 708, 22),         # Bakery Co.
+            ('agencies-marquee.png', 1109, 24),    # Constantine
+            ('cafe-marquee.png', 430, 456),        # Loafly
+            ('templates marquee.png', 494, 482),   # Pastora
+            ('agencies-marquee.png', 241, 24),     # Faculty
+            ('cafe-marquee.png', 864, 456),        # Morrow & Grain
+            ('templates marquee.png', 928, 482)]   # Restro
+for i, (f, x, y) in enumerate(MQ_TILES):
+    save(shot(f).crop((x, y, x + 410, y + 410)), f'mq{i}.png')
 
 sv = shot('service-full-screenshot.png')
 
