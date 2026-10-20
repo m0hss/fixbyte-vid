@@ -52,9 +52,9 @@ const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error',
   '-i', music,
   '-filter_complex',
   // low-opacity temporal film grain; music trimmed to 0:00–0:30 with a 1.5 s fade-out
-  `[0:v]noise=c0s=7:c0f=t+u,format=yuv420p[v];[1:a]atrim=0:${DUR},asetpts=PTS-STARTPTS,afade=t=out:st=${DUR - 1.5}:d=1.5[a]`,
+  `[0:v]noise=c0s=5:c0f=t+u,format=yuv420p[v];[1:a]atrim=0:${DUR},asetpts=PTS-STARTPTS,afade=t=out:st=${DUR - 1.5}:d=1.5[a]`,
   '-map', '[v]', '-map', '[a]',
-  '-c:v', 'libx264', '-preset', 'slow', '-crf', '16', '-profile:v', 'high', '-r', String(FPS),
+  '-c:v', 'libx264', '-preset', 'slow', '-crf', '19', '-maxrate', '14M', '-bufsize', '28M', '-tune', 'grain', '-profile:v', 'high', '-r', String(FPS),
   '-c:a', 'aac', '-b:a', '256k', '-t', String(DUR), '-movflags', '+faststart', out], { stdio: ['pipe', 'inherit', 'inherit'] });
 
 const t0 = Date.now();
